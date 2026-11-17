@@ -68,10 +68,16 @@ class Assistant(
     webClient: WebNutritionClient? = null,
 ) {
     private val log = LoggerFactory.getLogger(Assistant::class.java)
-    private val llm: LlmClient? = llm ?: config.geminiApiKey?.let { GeminiClient(it, config.geminiModel, config.geminiBaseUrl) }
+    private val configuredModel = if (config.openAiApiKey != null) config.openAiModel else config.geminiModel
+    private val llm: LlmClient? = llm
+        ?: config.openAiApiKey?.let { OpenAiClient(it, config.openAiModel, config.openAiBaseUrl, config.openAiReasoningEffort) }
+        ?: config.geminiApiKey?.let { GeminiClient(it, config.geminiModel, config.geminiBaseUrl) }
     private val foods = FoodSearch(config.foodsDbPath, config.foodSearchOnline, catalog)
     /** With a fake model (tests) only a given web client is used, never the real one. */
-    private val web = WebLookup(db, webClient ?: if (llm == null) config.geminiApiKey?.let { GeminiWebNutritionClient(it, config.geminiModel, config.geminiBaseUrl) } else null,
+    private val web = WebLookup(db, webClient ?: if (llm == null) {
+        config.openAiApiKey?.let { OpenAiWebNutritionClient(it, config.openAiModel, config.openAiBaseUrl) }
+            ?: config.geminiApiKey?.let { GeminiWebNutritionClient(it, config.geminiModel, config.geminiBaseUrl) }
+    } else null,
         config.webLookupDailyLimit)
     private val proposals = ProposalStore(db)
     private val admin = com.nutrime.server.AdminAccess(config, db)
@@ -111,7 +117,7 @@ class Assistant(
     fun routes(route: Route) = with(route) {
         get("/api/ai/status") {
             val uid = call.uid()
-            call.respond(AiStatus(llm != null, config.geminiModel, config.aiDailyLimit, usedToday(uid)))
+            call.respond(AiStatus(llm != null, configuredModel, config.aiDailyLimit, usedToday(uid)))
         }
 
         get("/api/ai/conversations") {
@@ -214,7 +220,7 @@ class Assistant(
 
         post("/api/ai/chat") {
             val uid = call.uid()
-            val llm = llm ?: throw ApiException(HttpStatusCode.ServiceUnavailable, "The assistant isn't set up on this server (GEMINI_API_KEY is missing)")
+            val llm = llm ?: throw ApiException(HttpStatusCode.ServiceUnavailable, "The assistant isn't set up on this server (OPENAI_API_KEY or GEMINI_API_KEY is missing)")
             val req = call.receive<ChatRequest>()
             val text = req.text.trim()
             if (text.isEmpty() && req.images.isEmpty()) throw ApiException(HttpStatusCode.BadRequest, "Message is empty")

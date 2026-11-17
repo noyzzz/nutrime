@@ -35,7 +35,7 @@ app, and a small server that you host yourself for sync and an optional AI assis
   widget, and meal, weigh-in and check-in reminders.
 - **Your data**: export everything as CSV and JSON; import Cronometer, MyFitnessPal or NutriMe exports on
   the web.
-- **AI assistant** (optional, Gemini): ask about your diary and trends, or describe or photograph a meal
+- **AI assistant** (optional, OpenAI or Gemini): ask about your diary and trends, or describe or photograph a meal
   or a nutrition label to log it. When a restaurant or branded food is not in the database, it can look up
   the published nutrition on the web and show the source site on the card. It proposes changes; nothing is
   saved until you tap **Confirm**.
@@ -77,7 +77,8 @@ account email to manage invitations from **Profile → Invitations**. To deploy 
 Coolify), see [`server/README.md`](server/README.md).
 
 Optional server settings: `USDA_API_KEY` for online USDA search (otherwise the limited `DEMO_KEY` is
-used) and `GEMINI_API_KEY` to turn on the AI assistant.
+used), or `OPENAI_API_KEY` (preferred) or `GEMINI_API_KEY` to turn on the AI assistant. Provider keys
+stay on the server and are never included in the Android or web app.
 
 ### 2. Build the Android app
 

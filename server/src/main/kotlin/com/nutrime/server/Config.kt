@@ -9,6 +9,12 @@ data class Config(
     /** Accept valid invitations. False pauses all new accounts; open registration is never allowed. */
     val allowRegistration: Boolean,
     val tokenDays: Long = 365,
+    /** OpenAI API key for the AI assistant. When set, OpenAI is preferred over Gemini. */
+    val openAiApiKey: String? = null,
+    val openAiModel: String = "gpt-6-luna",
+    val openAiBaseUrl: String = "https://api.openai.com/v1",
+    /** Optional OpenAI reasoning effort ("none", "low", "medium", "high", ...). */
+    val openAiReasoningEffort: String? = null,
     /** Gemini API key for the AI assistant; the assistant is off without one. */
     val geminiApiKey: String? = null,
     val geminiModel: String = "gemini-3.8-flash",
@@ -43,6 +49,10 @@ data class Config(
                 databasePassword = v("DATABASE_PASSWORD"),
                 jwtSecret = secret,
                 allowRegistration = v("ALLOW_REGISTRATION")?.lowercase() !in setOf("false", "0", "no"),
+                openAiApiKey = v("OPENAI_API_KEY"),
+                openAiModel = v("OPENAI_MODEL") ?: "gpt-6-luna",
+                openAiBaseUrl = v("OPENAI_BASE_URL") ?: "https://api.openai.com/v1",
+                openAiReasoningEffort = v("OPENAI_REASONING_EFFORT"),
                 geminiApiKey = v("GEMINI_API_KEY"),
                 geminiModel = v("GEMINI_MODEL") ?: "gemini-3.8-flash",
                 geminiBaseUrl = v("GEMINI_BASE_URL") ?: "https://generativelanguage.googleapis.com/v1beta",

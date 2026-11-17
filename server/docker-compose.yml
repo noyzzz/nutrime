@@ -33,7 +33,10 @@ services:
       # Registration always requires a single-use invitation; false also blocks valid codes.
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       PORT: 8080
-      # AI assistant (optional): off unless GEMINI_API_KEY is set.
+      # AI assistant (optional): OpenAI is preferred when both providers are configured.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
       GEMINI_THINKING_LEVEL: ${GEMINI_THINKING_LEVEL:-}

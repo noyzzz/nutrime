@@ -1,0 +1,5 @@
+# VPS overlay: publish only to localhost. Caddy provides public HTTPS.
+services:
+  web:
+    ports:
+      - "127.0.0.1:${NUTRIME_HOST_PORT:-8088}:80"

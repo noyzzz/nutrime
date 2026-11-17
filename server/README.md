@@ -7,7 +7,7 @@ A small Kotlin/Ktor API with PostgreSQL that stores your NutriMe data and syncs 
   Conflicts resolve last-writer-wins by modification time.
 - Each user's data is isolated
 - Auth endpoints are rate-limited; registration always requires a single-use, email-bound invitation
-- An optional AI assistant (Gemini) that works with each user's synced data, see [AI assistant](#ai-assistant)
+- An optional AI assistant (OpenAI or Gemini) that works with each user's synced data, see [AI assistant](#ai-assistant)
 
 ## Deploy on Coolify
 
@@ -25,7 +25,10 @@ container forwards `/api` to `api` over the private compose network, so only `we
    - `ADMIN_EMAILS`: the email address of your existing owner account (or the first account you will invite)
    - `USDA_API_KEY` (optional): free key from https://fdc.nal.usda.gov/api-key-signup for online USDA
      search (web app and assistant). It stays on the server; without it the heavily rate-limited `DEMO_KEY` is used.
-   - `GEMINI_API_KEY` (optional): turns on the AI assistant. Get one at https://aistudio.google.com/apikey.
+   - `OPENAI_API_KEY` (optional, preferred): turns on the AI assistant through the OpenAI Responses API.
+     Create it at https://platform.openai.com/api-keys. API billing is separate from a ChatGPT subscription.
+   - `OPENAI_MODEL` (optional): defaults to `gpt-6-luna`; choose another image-and-function capable model if needed.
+   - `GEMINI_API_KEY` (optional fallback): turns on the Gemini assistant when no OpenAI key is set.
 4. Set the **Domain** of the `web` service to something like `https://nutrime.yourdomain.com` (port 80).
    Leave `api` and `db` without a domain. Coolify obtains the HTTPS certificate automatically.
 5. **Deploy**. Then open `https://nutrime.yourdomain.com/api/health`; it should return `{"status":"ok",...}`,
@@ -86,6 +89,9 @@ Admin APIs (all require a signed-in account in `ADMIN_EMAILS`):
 | `ALLOW_REGISTRATION` | `true` | Accept valid invitations; `false` blocks all new accounts, including invitations |
 | `PORT` | `8080` | HTTP port |
 | `USDA_API_KEY` | `DEMO_KEY` | USDA FoodData Central key for the shared food catalog (Android, web and assistant) |
+| `OPENAI_API_KEY` | – | OpenAI API key. When set, OpenAI is preferred over Gemini. Keep it on the server only |
+| `OPENAI_MODEL` | `gpt-6-luna` | OpenAI model id for the assistant and web nutrition lookup |
+| `OPENAI_REASONING_EFFORT` | model default | Optional reasoning effort such as `none`, `low`, `medium` or `high` |
 | `GEMINI_API_KEY` | – | Gemini API key. The assistant is off without it |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | Gemini model id |
 | `GEMINI_THINKING_LEVEL` | model default | Optional `minimal`, `low`, `medium` or `high`; lower is faster and cheaper |
@@ -134,7 +140,7 @@ and one conversation history. Each turn:
 
 1. The app syncs first, then posts the message (and any photos, downscaled to 1280 px) to `/api/ai/chat`.
 2. The server builds a system prompt from the user's synced records (profile, targets, today's totals and
-   gaps, the last 7 days) and streams the conversation to Gemini with a set of tools: `get_day`,
+   gaps, the last 7 days) and sends the conversation to the configured model with a set of tools: `get_day`,
    `get_nutrient_report`, `get_weight_history`, `get_frequent_foods`, `search_foods` (several foods per
    call: the user's foods, the bundled USDA database, then the USDA API and Open Food Facts when local
    results are few or miss a word such as a brand), `get_food`, `get_my_foods` (custom foods and recipes with
@@ -161,14 +167,14 @@ and one conversation history. Each turn:
    pending again; records changed since then are left as they are.
 
 **Web lookup.** `web_nutrition_lookup` finds published nutrition (a brand's or restaurant's own page, the
-Canadian page first) for up to 5 foods per call and 2 calls per message. Each food is a separate,
-non-streaming Gemini request with Google Search grounding that must answer with strict JSON; the server then
+Canadian page first) for up to 5 foods per call and 2 calls per message. Each food is a separate provider
+request with web search that must answer with JSON; the server then
 checks the numbers (no negative values; calories within 15% or 20 kcal of 4/4/9 × protein, carbs and fat; at
 most 900 kcal per 100 g) and drops answers that fail. Results are cached for 90 days (not-found answers for
 one day) in `web_lookup_cache` under a hash of the request, and each user's lookups are counted in
 `web_lookup_uses` against `WEB_LOOKUP_DAILY_LIMIT`. Queries and answers are never logged. The model then
 uses `propose_create_food` with `source_url` and `source_note`; the card shows "From the web: <site>", and
-the admin's foods made this way appear in `GET /api/foods/candidates` with that page. Without a Gemini key the
+the admin's foods made this way appear in `GET /api/foods/candidates` with that page. Without a provider key the
 tool answers `unavailable`. The model's order for a food is: the user's own foods and history, NutriMe's
 curated foods and USDA, the stored catalog (Open Food Facts, USDA Branded), the web lookup, a recipe from
 ingredients, and an estimate (`propose_quick_add`) last. A plain food under a brand ("Kirkland blueberries")
