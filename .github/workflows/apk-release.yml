@@ -29,10 +29,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Prepare release version
-        # versionCode must keep increasing across releases. 1100+ keeps it above the builds from the
-        # earlier repository (the last was 1006), because this repository's run number started again at 1.
+        # This fork's first signed build is 2001. Keep future workflow builds on the same update line.
         run: |
-          echo "NUTRIME_BUILD_NUMBER=$((1100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "NUTRIME_BUILD_NUMBER=$((2000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
           echo "APP_VERSION=$(grep '^appVersion=' gradle.properties | cut -d= -f2)" >> "$GITHUB_ENV"
 
       - name: Decode signing key

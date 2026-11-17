@@ -75,7 +75,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.nutrime.app"
+        // Our fork uses its own package id and signing key, so it can coexist with upstream NutriMe.
+        applicationId = "com.noyzzz.nutrime"
         minSdk = 26
         targetSdk = 35
         versionCode = buildNumber
